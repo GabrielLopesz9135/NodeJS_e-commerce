@@ -81,11 +81,26 @@ exports.saveCart = async (req, res, next) => {
       product = await Product.findByPk(prodId);
     }
 
-    cart.addProduct(product, { through: {quantity: newQuantity} })
+    await cart.addProduct(product, { through: {quantity: newQuantity} })
     res.redirect('/cart')
   } catch (error) {
     console.log(error)
   }
+}
+
+exports.postOrder = async(req, res, next) => {
+  const cart = await req.user.getCart();
+  const products = await cart.getProducts();
+  console.log(products);
+  const order = await req.user.createOrder();
+
+  order.addProducts(
+    products.map(product => {
+      product.orderItem = {quantity: product.cartItem.quantity}
+      return product;
+    })
+  )
+  res.redirect('/orders')
 }
 
 exports.getOrders = (req, res, next) => {
