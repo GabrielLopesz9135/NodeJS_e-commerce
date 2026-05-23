@@ -9,7 +9,7 @@
     <main>
         <form class="product-form" action="/admin/<% if (edit) { %>edit-product<% } else { %>add-product<% } %>" method="POST">
             <% if(edit){%>
-                <input type="hidden" name="productId" value="<%=product.id%>">
+                <input type="hidden" name="productId" value="<%=product._id%>">
             <%}%>
             <div class="form-control">
                 <label for="title">Title</label>
