@@ -15,7 +15,6 @@ class Product {
     return db.collection('products')
     .insertOne(this)
     .then(result => {
-      console.log(result)
     })
     .catch(err => console.log(err))
   }
@@ -25,7 +24,6 @@ class Product {
     return db.collection('products')
     .updateOne({_id: this._id}, {$set: this})
     .then(result => {
-      console.log(result)
     })
     .catch(err => console.log(err))
   }
@@ -47,7 +45,6 @@ class Product {
     .find({_id: new mongodb.ObjectId(id)})
     .next()
     .then(product => {
-      console.log(product);
       return product
     }).catch(err => console.log(err))
   }
@@ -57,7 +54,7 @@ class Product {
     return db.collection('products')
     .deleteOne({_id: new mongodb.ObjectId(id)})
     .then(result => {
-      console.log('Deleted')
+      return result;
     })
     .catch(err => console.log(err))
   }

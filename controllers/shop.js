@@ -40,7 +40,6 @@ exports.getIndex = (req, res, next) => {
 exports.getCart = (req, res, next) => {
   req.user.getCart()
     .then(Products => {
-      console.log('Products', Products)
       res.render('shop/cart', {
         path: '/cart',
         pageTitle: 'Your Cart',
@@ -51,11 +50,8 @@ exports.getCart = (req, res, next) => {
 };
 
 exports.deleteItemCart = async (req, res, next) => {
-  const prodId = req.params.productId;
-  const cart = await req.user.getCart();
-  const products = await cart.getProducts();
-  const product = products[0];
-  await product.cartItem.destroy();
+  const prodId = req.body.productId;
+  const result = await req.user.deleteItemCart(prodId);
   res.redirect('/cart');
 }
 
@@ -63,49 +59,27 @@ exports.saveCart = async (req, res, next) => {
   try {
     const prodId = req.body.productId;
     const product = await Product.findById(prodId);
-    console.log('product', product)
     const result = await req.user.addToCart(product);
     return res.redirect('/cart')
-    /* const cart = await req.user.getCart();
-    const cartProducts = await cart.getProducts({where: {id: prodId}});
-    let product = {};
-    let newQuantity = 1;
-    
-    if(cartProducts.length > 0){
-      product = cartProducts[0];
-
-      if(product){
-        const oldQuantity = product.cartItem.quantity;
-        newQuantity = oldQuantity + 1;
-      }
-    }else{
-      product = await Product.findByPk(prodId);
-    }
-
-    await cart.addProduct(product, { through: {quantity: newQuantity} })
-    res.redirect('/cart') */
   } catch (error) {
     console.log(error)
   }
 }
 
 exports.postOrder = async (req, res, next) => {
-  const cart = await req.user.getCart();
-  const products = await cart.getProducts();
-  console.log(products);
-  const order = await req.user.createOrder();
-
-  order.addProducts(
-    products.map(product => {
-      product.orderItem = { quantity: product.cartItem.quantity }
-      return product;
-    })
-  )
-  res.redirect('/orders')
+  try{
+    const result = await req.user.createOrder();
+    res.redirect('/orders')
+  }catch(err){
+    console.log(err)
+  }
 }
 
-exports.getOrders = (req, res, next) => {
+exports.getOrders = async (req, res, next) => {
+  const orders = await req.user.getOrders();
+  console.log('orders', orders);
   res.render('shop/orders', {
+    orders: orders,
     path: '/orders',
     pageTitle: 'Your Orders'
   });
