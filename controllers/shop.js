@@ -1,4 +1,5 @@
 const Product = require('../models/product');
+const Order = require('../models/order');
 
 exports.getProducts = (req, res, next) => {
   Product.find()
@@ -51,6 +52,7 @@ exports.getCart = (req, res, next) => {
 
 exports.deleteItemCart = async (req, res, next) => {
   const prodId = req.body.productId;
+  console.log('controller', prodId);
   const result = await req.user.deleteItemCart(prodId);
   res.redirect('/cart');
 }
@@ -68,7 +70,14 @@ exports.saveCart = async (req, res, next) => {
 
 exports.postOrder = async (req, res, next) => {
   try{
-    const result = await req.user.createOrder();
+    const userId = req.user._id;
+    const items = await req.user.getCart();
+    const result = await Order.createOrder(userId, items)
+    if(result){
+      req.user.deleteAllCart();
+    }else{
+      console.log("Erro ao criar order")
+    }
     res.redirect('/orders')
   }catch(err){
     console.log(err)
@@ -76,7 +85,7 @@ exports.postOrder = async (req, res, next) => {
 }
 
 exports.getOrders = async (req, res, next) => {
-  const orders = await req.user.getOrders();
+  const orders = await Order.find({userId: req.user._id})
   console.log('orders', orders);
   res.render('shop/orders', {
     orders: orders,
