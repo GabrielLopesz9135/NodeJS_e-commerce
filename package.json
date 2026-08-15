@@ -5,8 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js",
-    "start-server": "node app.js"
+    "start": "nodemon --exec \"node --no-deprecation app.js\"",
+    "start-server": "node --no-deprecation app.js"
   },
   "author": "Maximilian Schwarzmüller",
   "license": "ISC",
@@ -14,8 +14,10 @@
     "nodemon": "^1.18.3"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "body-parser": "^1.18.3",
     "connect-mongodb-session": "^5.0.0",
+    "csurf": "^1.11.0",
     "dotenv": "^17.4.2",
     "ejs": "^2.6.1",
     "express": "^4.16.3",
