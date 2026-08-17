@@ -55,6 +55,7 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   res.locals.isAuthenticated = req.session.isLoggedIn;
   res.locals.csrfToken = req.csrfToken();
+  res.locals.error = false
   next();
 });
 
@@ -67,7 +68,7 @@ app.use(errorController.get404);
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(result => {
-    app.listen(3000);
+    app.listen(3050);
   })
   .catch(err => {
     console.log(err);
