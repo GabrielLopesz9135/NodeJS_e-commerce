@@ -128,6 +128,7 @@ exports.getResetPassword = (req, res, next) => {
     path: '/reset-password',
   });
 }
+<<<<<<< HEAD
 
 exports.postResetPassword = async (req, res, next) => {
   try{
@@ -152,6 +153,19 @@ exports.postResetPassword = async (req, res, next) => {
 
     res.redirect('/login');
 
+=======
+exports.postResetPassword = async (req, res, next) => {
+  try{
+    const buffer = await crypto.randomBytes(32);
+    const token = await buffer.toString('hex');
+    const user = await User.findOne({email: req.body.email});
+    if(!user){
+      
+    }
+
+    user.resetToken = token;
+    user.resetTokenExpiration = token
+>>>>>>> 5fad6893b916cff8616c2343d4330efb08f720b1
   }catch(error){
     console.log(error)
     res.render('auth/reset-password', {
@@ -161,6 +175,7 @@ exports.postResetPassword = async (req, res, next) => {
     });
   }
 
+<<<<<<< HEAD
 }
 
 exports.getNewPassword = async (req, res, next) => {
@@ -229,3 +244,6 @@ exports.postNewPassword = async (req, res, next) => {
   res.redirect('/login');
 
 }
+=======
+}
+>>>>>>> 5fad6893b916cff8616c2343d4330efb08f720b1
