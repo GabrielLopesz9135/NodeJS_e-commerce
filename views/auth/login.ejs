@@ -7,21 +7,31 @@
    <%- include('../includes/navigation.ejs') %>
 
     <main>
-        <form class="login-form" action="/login" method="POST">
+        <form class="login-form" action="/login" method="POST" novalidate>
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <div class="form-control">
                 <label for="email">E-mail</label>
-                <input type="email" name="email" id="email">
+                <input 
+                class="<%= errors.find(err => err.path === 'email') ? 'invalid' : '' %>"
+                type="email" 
+                name="email" 
+                id="email"
+                value="<%= typeof errors.length > 0 && errors.find(err => err.path === 'email') ? errors. : '' %>">
             </div>
             <div class="form-control">
                 <label for="password">Password</label>
-                <input type="password" name="password" id="password">
+                <input 
+                class="<%= errors.find(err => err.path === 'password') ? 'invalid' : '' %>"
+                type="password" 
+                name="password" 
+                id="password"
+                value="<%= typeof oldInput !== 'undefined' ? (oldInput?.password ?? '') : '' %>">
             </div>
             <button class="btn" type="submit">Login</button>
         </form>
         <a href="/reset-password">Reset Password</a>
     </main>
-    <% if (error) { %>
-        <div class="user-message user-message-error"><%= error %></div>
+    <% for (let error of errors) { %>
+        <div class="user-message user-message-error"><%= error.msg %></div>
     <% } %>
 <%- include('../includes/end.ejs') %>

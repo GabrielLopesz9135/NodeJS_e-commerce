@@ -2,6 +2,7 @@ const crypto = require("crypto");
 const User = require('../models/user');
 const bcrypt = require('bcryptjs');
 const resendPackage = require('resend');
+const { validationResult } = require('express-validator');
 
 const resendClient = new resendPackage.Resend(process.env.RESEND_API_KEY);
 
@@ -9,31 +10,33 @@ exports.getLogin = (req, res, next) => {
   res.render('auth/login', {
     pageTitle: 'Login',
     path: '/login',
+    errors: []
   });
 };
 
 exports.postLogin = async (req, res, next) => {
   try{
     const email = req.body.email;
+    console.log(email)
     const password = req.body.password;
+    const errors = validationResult(req).array();
 
     const user = await User.findOne({email: email})
     if(!user){
-      return res.render('auth/login', {
-        pageTitle: 'Login',
-        path: '/login',
-        isAuthenticated: false,
-        error: "This credencials are invalid"
-      })
+      errors.push({value: email, msg:"This credencials are invalid", path: 'email' })
+    }else{
+      const isPasswordRight = await bcrypt.compare(password, user.password)
+      if(!isPasswordRight){
+        errors.push({value: password, msg:"This credencials are invalid", path: 'password' })
+      }
     }
 
-    const isPasswordRight = await bcrypt.compare(password, user.password)
-    if(!isPasswordRight){
-      return res.render('auth/login', {
-        pageTitle: 'Login',
+    console.log(errors);
+    if(errors.length > 0){
+      return res.status(422).render('auth/login', {
         path: '/login',
-        isAuthenticated: false,
-        error: "This credencials are invalid"
+        pageTitle: 'Login',
+        errors: errors
       })
     }
 
@@ -69,25 +72,24 @@ exports.postSignup = async (req, res, next) => {
     const email = req.body.email;
     const password = req.body.password;
     const confirmPassword = req.body.confirmPassword;
-
-    UserAlreadyExists = await User.findOne({email: email})
-    if(UserAlreadyExists){
-      console.log("This email is already in use")
-      return res.render('auth/signup', {
+    const errors = validationResult(req);
+    console.log(errors.array())
+    if(!errors.isEmpty()){
+      return res.status(422).render('auth/signup', {
         path: '/signup',
-        pageTitle: '/signup',
-        isAuthenticated: false,
-        error: "This email is already in use"
+        pageTitle: 'Signup',
+        errors: errors.array(),
+        oldInput:{
+          email: email, 
+          password: password, 
+          confirmPassword: req.body.confirmPassword
+        }
       })
     }
+
     if(password !== confirmPassword){
-      console.log("The passwords don't match")
-      return res.render('auth/signup', {
-        path: '/signup',
-        pageTitle: '/signup',
-        isAuthenticated: false,
-        error: "The passwords don't match"
-      })
+      req.flash('error', "The passwords don't match");
+      return res.redirect('/signup');
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
@@ -112,23 +114,28 @@ exports.postSignup = async (req, res, next) => {
   }
 }
 
-
 exports.getSignup = (req, res, next) => {
   res.render('auth/signup', {
     path: '/signup',
-    pageTitle: '/signup',
+    pageTitle: 'Signup',
     isAuthenticated: false,
-    error: false
+    errors: [],
   })
 }
 
 exports.getResetPassword = (req, res, next) => {
+  let message = req.flash('error');
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
   res.render('auth/reset-password', {
     pageTitle: 'Reset Password',
     path: '/reset-password',
+    error: message
   });
 }
-<<<<<<< HEAD
 
 exports.postResetPassword = async (req, res, next) => {
   try{
@@ -137,7 +144,8 @@ exports.postResetPassword = async (req, res, next) => {
     const token = await buffer.toString('hex');
     const user = await User.findOne({email: email});
     if(!user){
-      return res.redirect('/reset-password')
+      req.flash('error', 'No account with that email found.');
+      return res.redirect('/reset-password');
     }
     user.resetToken = token;
     user.resetTokenExpiration = Date.now() + 3600000; // 1 hour
@@ -153,34 +161,25 @@ exports.postResetPassword = async (req, res, next) => {
 
     res.redirect('/login');
 
-=======
-exports.postResetPassword = async (req, res, next) => {
-  try{
-    const buffer = await crypto.randomBytes(32);
-    const token = await buffer.toString('hex');
-    const user = await User.findOne({email: req.body.email});
-    if(!user){
-      
-    }
-
-    user.resetToken = token;
-    user.resetTokenExpiration = token
->>>>>>> 5fad6893b916cff8616c2343d4330efb08f720b1
   }catch(error){
     console.log(error)
-    res.render('auth/reset-password', {
-      pageTitle: 'Reset Password',
-      path: '/reset-password',
-      error: 'Error on the password reset link'
-    });
+    req.flash('error', 'Error on the password reset link');
+    res.redirect('/reset-password');
   }
 
-<<<<<<< HEAD
 }
 
 exports.getNewPassword = async (req, res, next) => {
   const token = req.query.token;
   const email = req.query.email;
+  
+  let message = req.flash('error');
+  if (message.length > 0) {
+    message = message[0];
+  } else {
+    message = null;
+  }
+
   const user = await User.findOne({
     email: email,
     resetToken: token,
@@ -188,18 +187,16 @@ exports.getNewPassword = async (req, res, next) => {
   });
 
   if(!user){
-    return res.render('auth/reset-password', {
-      pageTitle: 'Reset Password',
-      path: '/reset-password',
-      error: 'Invalid reset token or email 2'
-    });
+    req.flash('error', 'Invalid reset token or email');
+    return res.redirect('/reset-password');
   }
 
   res.render('auth/new-password', {
     pageTitle: 'New Password',
     path: '/new-password',
     email: email,
-    token: token
+    token: token,
+    error: message
   });
 }
 
@@ -210,13 +207,8 @@ exports.postNewPassword = async (req, res, next) => {
   const token = req.body.token;
 
   if(newPassword !== confirmPassword){
-    return res.render('auth/new-password', {
-      pageTitle: 'New Password',
-      path: '/new-password',
-      email: email,
-      token: token,
-      error: 'Passwords do not match'
-    });
+    req.flash('error', 'Passwords do not match');
+    return res.redirect(`/new-password?email=${email}&token=${token}`);
   }
 
   const user = await User.findOne({
@@ -226,13 +218,8 @@ exports.postNewPassword = async (req, res, next) => {
   });
 
   if(!user){
-    return res.render('auth/new-password', {
-      pageTitle: 'New Password',
-      path: '/new-password',
-      email: email,
-      token: token,
-      error: 'Invalid reset token or email'
-    });
+    req.flash('error', 'Invalid reset token or email');
+    return res.redirect(`/new-password?email=${email}&token=${token}`);
   }
 
   const hashedPassword = await bcrypt.hash(newPassword, 12);
@@ -244,6 +231,4 @@ exports.postNewPassword = async (req, res, next) => {
   res.redirect('/login');
 
 }
-=======
-}
->>>>>>> 5fad6893b916cff8616c2343d4330efb08f720b1
+
