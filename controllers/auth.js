@@ -58,8 +58,10 @@ exports.postLogin = async (req, res, next) => {
       }
       res.redirect('/');
     });
-  }catch(error){
-    console.log(error)
+  }catch(err){
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
   }
 
 };
@@ -114,7 +116,9 @@ exports.postSignup = async (req, res, next) => {
     user.save();
     return res.redirect('/login')
   }catch(err){
-    console.log(err)
+    const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
   }
 }
 
@@ -167,72 +171,84 @@ exports.postResetPassword = async (req, res, next) => {
 
   }catch(error){
     console.log(error)
-    req.flash('error', 'Error on the password reset link');
-    res.redirect('/reset-password');
+    const err = new Error('Error on the password reset link');
+    err.httpStatusCode = 500;
+    return next(err);
   }
 
 }
 
 exports.getNewPassword = async (req, res, next) => {
-  const token = req.query.token;
-  const email = req.query.email;
-  
-  let message = req.flash('error');
-  if (message.length > 0) {
-    message = message[0];
-  } else {
-    message = null;
+  try{
+    const token = req.query.token;
+    const email = req.query.email;
+    
+    let message = req.flash('error');
+    if (message.length > 0) {
+      message = message[0];
+    } else {
+      message = null;
+    }
+
+    const user = await User.findOne({
+      email: email,
+      resetToken: token,
+      resetTokenExpiration: { $gte: Date.now() }
+    });
+
+    if(!user){
+      req.flash('error', 'Invalid reset token or email');
+      return res.redirect('/reset-password');
+    }
+
+    res.render('auth/new-password', {
+      pageTitle: 'New Password',
+      path: '/new-password',
+      email: email,
+      token: token,
+      error: message
+    });
+  }catch(err){
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
   }
-
-  const user = await User.findOne({
-    email: email,
-    resetToken: token,
-    resetTokenExpiration: { $gte: Date.now() }
-  });
-
-  if(!user){
-    req.flash('error', 'Invalid reset token or email');
-    return res.redirect('/reset-password');
-  }
-
-  res.render('auth/new-password', {
-    pageTitle: 'New Password',
-    path: '/new-password',
-    email: email,
-    token: token,
-    error: message
-  });
 }
 
 exports.postNewPassword = async (req, res, next) => {
-  const newPassword = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
-  const email = req.body.email;
-  const token = req.body.token;
+  try{
+    const newPassword = req.body.password;
+    const confirmPassword = req.body.confirmPassword;
+    const email = req.body.email;
+    const token = req.body.token;
 
-  if(newPassword !== confirmPassword){
-    req.flash('error', 'Passwords do not match');
-    return res.redirect(`/new-password?email=${email}&token=${token}`);
+    if(newPassword !== confirmPassword){
+      req.flash('error', 'Passwords do not match');
+      return res.redirect(`/new-password?email=${email}&token=${token}`);
+    }
+
+    const user = await User.findOne({
+      email: email,
+      resetToken: token,
+      resetTokenExpiration: { $gte: Date.now() }
+    });
+
+    if(!user){
+      req.flash('error', 'Invalid reset token or email');
+      return res.redirect(`/new-password?email=${email}&token=${token}`);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    user.password = hashedPassword;
+    user.resetToken = undefined;
+    user.resetTokenExpiration = undefined;
+    await user.save();
+
+    res.redirect('/login');
+  }catch(err){
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error); 
   }
-
-  const user = await User.findOne({
-    email: email,
-    resetToken: token,
-    resetTokenExpiration: { $gte: Date.now() }
-  });
-
-  if(!user){
-    req.flash('error', 'Invalid reset token or email');
-    return res.redirect(`/new-password?email=${email}&token=${token}`);
-  }
-
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
-  user.password = hashedPassword;
-  user.resetToken = undefined;
-  user.resetTokenExpiration = undefined;
-  await user.save();
-
-  res.redirect('/login');
-
 }
 
