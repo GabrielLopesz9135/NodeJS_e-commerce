@@ -23,11 +23,11 @@ exports.postLogin = async (req, res, next) => {
 
     const user = await User.findOne({email: email})
     if(!user){
-      errors.push({value: email, msg:"This credencials are invalid", path: 'email' })
+      errors.push({value: email, msg:"This email is invalid", path: 'email' })
     }else{
       const isPasswordRight = await bcrypt.compare(password, user.password)
       if(!isPasswordRight){
-        errors.push({value: password, msg:"This credencials are invalid", path: 'password' })
+        errors.push({value: password, msg:"This password is invalid", path: 'password' })
       }
     }
 
@@ -36,7 +36,11 @@ exports.postLogin = async (req, res, next) => {
       return res.status(422).render('auth/login', {
         path: '/login',
         pageTitle: 'Login',
-        errors: errors
+        errors: errors,
+        oldInput:{
+          email: email, 
+          password: password
+        }
       })
     }
 

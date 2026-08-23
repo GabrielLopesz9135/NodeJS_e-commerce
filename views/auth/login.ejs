@@ -16,7 +16,7 @@
                 type="email" 
                 name="email" 
                 id="email"
-                value="<%= typeof errors.length > 0 && errors.find(err => err.path === 'email') ? errors. : '' %>">
+                value="<%= typeof oldInput !== 'undefined' ? (oldInput?.email ?? '') : '' %>">
             </div>
             <div class="form-control">
                 <label for="password">Password</label>
