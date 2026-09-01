@@ -4,7 +4,10 @@ const Product = require('../models/product');
 const Order = require('../models/order');
 const pdfkit = require('pdfkit')
 
+const ITENS_PER_PAGE = 1;
+
 exports.getProducts = (req, res, next) => {
+
   Product.find()
     .then(products => {
       res.render('shop/product-list', {
@@ -31,16 +34,24 @@ exports.getProduct = (req, res, next) => {
     .catch(err => console.log(err));
 };
 
-exports.getIndex = (req, res, next) => {
-  /* console.log(req.session.isLoggedIn); */
+exports.getIndex = async (req, res, next) => {
+  const page = Number(req.query.page) || 1;
+  const totalItems = await Product.find().countDocuments();
+
   Product.find()
+  .skip((page - 1) * ITENS_PER_PAGE)
+  .limit(ITENS_PER_PAGE)
     .then(products => {
       res.render('shop/index', {
         prods: products,
         pageTitle: 'Shop',
         path: '/',
-        /* isAuthenticated: req.session.isLoggedIn,
-        csrfToken: req.csrfToken() */
+        currentPage: page,
+        hasNextPage: ITENS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITENS_PER_PAGE)
       });
     })
     .catch(err => {
