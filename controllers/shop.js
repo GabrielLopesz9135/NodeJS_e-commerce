@@ -4,20 +4,31 @@ const Product = require('../models/product');
 const Order = require('../models/order');
 const pdfkit = require('pdfkit')
 
-const ITENS_PER_PAGE = 1;
+const ITENS_PER_PAGE = 2;
 
-exports.getProducts = (req, res, next) => {
+exports.getProducts = async (req, res, next) => {
+  const page = Number(req.query.page) || 1;
+  const totalItems = await Product.find().countDocuments();
 
   Product.find()
+  .skip((page - 1) * ITENS_PER_PAGE)
+  .limit(ITENS_PER_PAGE)
     .then(products => {
       res.render('shop/product-list', {
         prods: products,
         pageTitle: 'All Products',
-        path: '/products'
+        path: '/products',
+        currentPage: page,
+        hasNextPage: ITENS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITENS_PER_PAGE)
       });
     })
     .catch(err => {
       console.log(err);
+      next(err)
     });
 };
 
