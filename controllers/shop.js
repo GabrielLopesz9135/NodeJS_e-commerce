@@ -156,6 +156,44 @@ exports.postOrder = (req, res, next) => {
     });
 };
 
+exports.getCheckout = async (req, res, next) => {
+  try {
+    const cartItems = req.user.cart.items;
+    const items = cartItems.map(item => item.productId);
+    const products = await Product.find({ _id: { $in: items } });
+
+    const cartProducts = products.map(product => {
+      let quantity = 0;
+      cartItems.map(item => {
+        if (item.productId.toString() === product._id.toString()) {
+          quantity = item.quantity;
+        }
+      });
+      return {
+        ...product._doc,
+        quantity: quantity
+      };
+    });
+    let total = 0;
+    cartProducts.forEach(p => {
+      total += p.quantity * p.price
+    })
+
+    console.log(total);
+
+    res.render('shop/checkout', {
+      path: '/checkout',
+      pageTitle: 'Checkout',
+      products: cartProducts,
+      total: total
+    });
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  }
+}
+
 exports.getOrders = (req, res, next) => {
   const userId = (req.user && req.user._id) || (req.session && req.session.user && req.session.user._id);
   if (!userId) {
